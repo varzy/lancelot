@@ -7,3 +7,8 @@ interface SwaggerConfig {
   path: string;
   version: string;
 }
+
+interface NotionConfig {
+  token: string;
+  channelDatabaseId: string;
+}

@@ -8,12 +8,13 @@ import { PosterModule } from './resources/poster/poster.module';
 import { DoubanModule } from './resources/douban/douban.module';
 import appConfig from './config/app.config';
 import swaggerConfig from './config/swagger.config';
+import notionConfig from './config/notion.config';
 
 @Module({
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
-      load: [appConfig, swaggerConfig],
+      load: [appConfig, swaggerConfig, notionConfig],
     }),
     ChannelModule,
     NewsletterModule,

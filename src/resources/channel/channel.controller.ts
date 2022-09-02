@@ -1,34 +1,17 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
+import { Body, Controller, Post } from '@nestjs/common';
 import { ChannelService } from './channel.service';
-import { CreateChannelDto } from './dto/create-channel.dto';
-import { UpdateChannelDto } from './dto/update-channel.dto';
+import { SendPostDto } from './dto/send-post.dto';
 
 @Controller('channel')
 export class ChannelController {
   constructor(private readonly channelService: ChannelService) {}
 
-  @Post()
-  create(@Body() createChannelDto: CreateChannelDto) {
-    return this.channelService.create(createChannelDto);
-  }
+  @Post('publish')
+  publish(@Body() sendPost: SendPostDto) {
+    if (sendPost.pageId) {
+      return this.channelService.publishById(sendPost.pageId);
+    }
 
-  @Get()
-  findAll() {
-    return this.channelService.findAll();
-  }
-
-  @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.channelService.findOne(+id);
-  }
-
-  @Patch(':id')
-  update(@Param('id') id: string, @Body() updateChannelDto: UpdateChannelDto) {
-    return this.channelService.update(+id, updateChannelDto);
-  }
-
-  @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.channelService.remove(+id);
+    return this.channelService.publishByDay(sendPost.day);
   }
 }
