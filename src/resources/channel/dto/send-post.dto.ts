@@ -3,7 +3,7 @@ import { IsOptional, IsString } from 'class-validator';
 export class SendPostDto {
   @IsOptional()
   @IsString()
-  pageId?: string;
+  id?: string;
 
   @IsOptional()
   @IsString()

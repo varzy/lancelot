@@ -4,12 +4,11 @@ import * as Dayjs from 'dayjs';
 import { NotionService } from '../notion/notion.service';
 import NotionConfig from '../../config/notion.config';
 import {
-  BlockObjectResponse,
+  BlockObjectResponse, NumberedListItemBlockObjectResponse, NumberPropertyItemObjectResponse,
   PageObjectResponse,
-  PartialBlockObjectResponse,
+  ParagraphBlockObjectResponse, QuoteBlockObjectResponse,
 } from '@notionhq/client/build/src/api-endpoints';
 import { TelegramService } from '../../modules/telegram/telegram.service';
-import { map } from 'rxjs';
 
 @Injectable()
 export class ChannelService extends NotionService {
@@ -23,7 +22,7 @@ export class ChannelService extends NotionService {
   }
 
   async publishById(id: string) {
-    const pageCtx = await this.notionClient.pages.retrieve({ page_id: id });
+    const pageCtx = await this.getPageCtx(id);
     return this.publishPage(pageCtx as PageObjectResponse);
   }
 
@@ -56,12 +55,7 @@ export class ChannelService extends NotionService {
     return this.publishPage(sortedResults[0] as PageObjectResponse);
   }
 
-  /**
-   * 发布页面
-   * @param pageCtx
-   * @private
-   */
-  private publishPage(pageCtx: PageObjectResponse) {
+  private async publishPage(pageCtx: PageObjectResponse) {
     const publishingCovers = this.getPublishingCovers(pageCtx);
     if (publishingCovers.length > 10) {
       throw new Error('Too Many Covers.');
@@ -70,15 +64,15 @@ export class ChannelService extends NotionService {
     let publishingContent = '';
 
     // 添加分类
-    const category = this.getPageProperty(pageCtx, 'Category');
+    const category = this.getPageProperty(pageCtx, 'Category').name;
     if (!category) {
       throw new Error('No Category.');
     }
-    publishingContent += `\\#${category}`;
+    publishingContent += `#${category}`;
 
     // 添加标签
     const tags = this.getPageProperty(pageCtx, 'Tags')
-      .map((tag) => `\\#${tag.name}`)
+      .map((tag) => `#${tag.name}`)
       .join(' ');
     publishingContent += ` ${tags}`;
 
@@ -90,26 +84,16 @@ export class ChannelService extends NotionService {
     }
 
     // 添加内容
-    // const content = await this.getPublishingContent(pageCtx);
+    const content = await this.getPublishingContent(pageCtx);
+    publishingContent += `\n\n${content}`;
 
     return publishingContent;
   }
 
-  /**
-   * 构建发布的封面
-   * @param pageCtx
-   * @private
-   */
   private getPublishingCovers(pageCtx: PageObjectResponse) {
     return this.getPageProperty(pageCtx, 'Cover').map((cover) => cover.file.url);
   }
 
-  /**
-   * 构建链接
-   * @param text
-   * @param link
-   * @private
-   */
   private getPublishingLink(text: string, link: string) {
     return `[${text}](${TelegramService.escapeTextToMarkdownV2(link)})`;
   }
@@ -131,7 +115,9 @@ export class ChannelService extends NotionService {
   }
 
   private async getPublishingContent(pageCtx: PageObjectResponse) {
+    let numberedOrder = 0;
     const pageBlocks = await this.getFulfilledBlocksList(pageCtx.id);
+
     return (pageBlocks as BlockObjectResponse[])
       .map((block) => {
         // 根据段落类型进行转义
@@ -147,22 +133,38 @@ export class ChannelService extends NotionService {
           throw new Error(`Unsupported Block Type: ${block.type}; BlockCtx: ${block}`);
         }
 
-        console.log(block);
+        if (block.type === 'numbered_list_item') {
+          numberedOrder++;
+          return supportedBlockTypeProducer[block.type].call(this, block, numberedOrder);
+        } else {
+          numberedOrder = 0;
+          return supportedBlockTypeProducer[block.type].call(this, block);
+        }
       })
       .join('\n')
       .trim();
   }
 
-  private translateParagraphBlock(block: BlockObjectResponse) {
-    //
+  private translateParagraphBlock(block: ParagraphBlockObjectResponse) {
+    return block.paragraph.rich_text.map(this.translateRichTextSnippet).join('');
   }
 
-  private translateQuoteBlock(block: BlockObjectResponse) {
-    //
+  private translateQuoteBlock(block: QuoteBlockObjectResponse) {
+    return block.quote.rich_text
+      .map((snippet) => {
+        snippet.annotations.italic = true;
+        snippet.annotations.underline = true;
+        return snippet;
+      })
+      .map(this.translateRichTextSnippet)
+      .join('');
   }
 
-  private translateNumberedList(block: BlockObjectResponse) {
-    //
+  private translateNumberedList(block: NumberedListItemBlockObjectResponse, numberedOrder: number) {
+    return block.numbered_list_item.rich_text
+      .map(this.translateRichTextSnippet)
+      .map((text) => TelegramService.escapeTextToMarkdownV2(`${numberedOrder}. ${text}`))
+      .join('');
   }
 
   private translateBulletedList(block: BlockObjectResponse) {
@@ -171,5 +173,24 @@ export class ChannelService extends NotionService {
 
   private translateCode(block: BlockObjectResponse) {
     //
+  }
+
+  private translateRichTextSnippet(snippet) {
+    let finalText = TelegramService.escapeTextToMarkdownV2(snippet.plain_text);
+
+    // 对文字进行基本转义，需要注意转义顺序
+    if (snippet.annotations.code) finalText = `\`${finalText}\``;
+    if (snippet.annotations.strikethrough) finalText = `~${finalText}~`;
+    if (snippet.annotations.italic) finalText = `_${finalText}_`;
+    if (snippet.annotations.underline) finalText = `__${finalText}__`;
+    if (snippet.annotations.bold) finalText = `*${finalText}*`;
+
+    // For Spider Text
+    // finalText = finalText.replaceAll(`\\|\\|`, '||');
+
+    // 如果包含链接
+    if (snippet.href) finalText = this.getPublishingLink(finalText, snippet.href);
+
+    return finalText;
   }
 }
