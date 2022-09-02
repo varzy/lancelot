@@ -2,7 +2,10 @@ import { Module } from '@nestjs/common';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { ConfigModule } from '@nestjs/config';
-import { TelegramModule } from './resources/telegram/telegram.module';
+import { ChannelModule } from './resources/channel/channel.module';
+import { NewsletterModule } from './resources/newsletter/newsletter.module';
+import { PosterModule } from './resources/poster/poster.module';
+import { DoubanModule } from './resources/douban/douban.module';
 import appConfig from './config/app.config';
 import swaggerConfig from './config/swagger.config';
 
@@ -12,7 +15,10 @@ import swaggerConfig from './config/swagger.config';
       isGlobal: true,
       load: [appConfig, swaggerConfig],
     }),
-    TelegramModule,
+    ChannelModule,
+    NewsletterModule,
+    PosterModule,
+    DoubanModule,
   ],
   controllers: [AppController],
   providers: [AppService],
