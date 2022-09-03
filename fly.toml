@@ -1,6 +1,6 @@
-# fly.toml file generated for lancelot-github-actions on 2022-09-04T07:16:59+08:00
+# fly.toml file generated for lancelot on 2022-09-04T07:25:41+08:00
 
-app = "lancelot-github-actions"
+app = "lancelot"
 kill_signal = "SIGINT"
 kill_timeout = 5
 processes = []
