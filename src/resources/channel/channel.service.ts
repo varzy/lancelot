@@ -4,9 +4,12 @@ import * as Dayjs from 'dayjs';
 import { NotionService } from '../notion/notion.service';
 import NotionConfig from '../../config/notion.config';
 import {
-  BlockObjectResponse, NumberedListItemBlockObjectResponse, NumberPropertyItemObjectResponse,
+  BlockObjectResponse,
+  NumberedListItemBlockObjectResponse,
+  NumberPropertyItemObjectResponse,
   PageObjectResponse,
-  ParagraphBlockObjectResponse, QuoteBlockObjectResponse,
+  ParagraphBlockObjectResponse,
+  QuoteBlockObjectResponse,
 } from '@notionhq/client/build/src/api-endpoints';
 import { TelegramService } from '../../modules/telegram/telegram.service';
 
