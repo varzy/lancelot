@@ -6,6 +6,9 @@ import {
   ListBlockChildrenParameters,
   ListBlockChildrenResponse,
 } from '@notionhq/client/build/src/api-endpoints';
+import { HttpsProxyAgent } from 'https-proxy-agent';
+import { ClientOptions } from '@notionhq/client/build/src/Client';
+
 // import { HttpsProxyAgent } from 'https-proxy-agent';
 
 @Injectable()
@@ -14,7 +17,9 @@ export class NotionService {
 
   constructor(protected readonly configService: ConfigService) {
     const notionConfig = this.configService.get<NotionConfig>('notion');
-    this.notionClient = new NotionClient({ auth: notionConfig.token });
+    const options: ClientOptions = { auth: notionConfig.token };
+    if (process.env.APP_PROXY_ADDRESS) options.agent = new HttpsProxyAgent(process.env.APP_PROXY_ADDRESS);
+    this.notionClient = new NotionClient(options);
   }
 
   getPageCtx(id: string) {

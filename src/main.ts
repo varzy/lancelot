@@ -29,7 +29,10 @@ async function bootstrap() {
    */
   await app.listen(appConfig.port);
 
+  console.log(`---------------------------------------------`);
+  console.log(`APP ENV: ${process.env.APP_ENV}`);
   console.log(`APP RUNNING AT: ${appConfig.port}`);
+  console.log(`---------------------------------------------`);
 }
 
 bootstrap();

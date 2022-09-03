@@ -13,6 +13,7 @@ import {
   QuoteBlockObjectResponse,
 } from '@notionhq/client/build/src/api-endpoints';
 import { TelegramService } from '../telegram/telegram.service';
+import * as fs from 'fs';
 
 @Injectable()
 export class ChannelService extends NotionService implements OnModuleInit {
@@ -73,6 +74,24 @@ export class ChannelService extends NotionService implements OnModuleInit {
       throw new Error('Content Too Long.');
     }
 
+    fs.writeFileSync('publishingContent.md', publishingContent);
+
+    // 无图片
+    if (!publishingCovers.length) {
+      return this.telegramService.sendMessage(publishingContent, { parse_mode: 'MarkdownV2' });
+    }
+    // 1 张图片
+    else if (publishingCovers.length === 1) {
+      return this.telegramService.sendPhoto(publishingCovers[0], {
+        parse_mode: 'MarkdownV2',
+        caption: publishingContent,
+      });
+    }
+    // 多图
+    else {
+      // return this.telegramService.sendPhotoGroup(publishingCovers[0], { parse_mode: 'MarkdownV2', caption: publishingContent });
+    }
+
     // // 无图片
     // if (!COVERS.length) {
     //   await this.telegramService.sendMessage({ text: TEXT });
@@ -101,11 +120,11 @@ export class ChannelService extends NotionService implements OnModuleInit {
     if (!category) {
       throw new Error('No Category.');
     }
-    publishingContent += `#${category}`;
+    publishingContent += TelegramService.escapeTextToMarkdownV2(`#${category}`);
 
     // 添加标签
     const tags = this.getPageProperty(pageCtx, 'Tags')
-      .map((tag) => `#${tag.name}`)
+      .map((tag) => TelegramService.escapeTextToMarkdownV2(`#${tag.name}`))
       .join(' ');
     publishingContent += ` ${tags}`;
 
@@ -186,7 +205,6 @@ export class ChannelService extends NotionService implements OnModuleInit {
   private translateQuoteBlock(block: QuoteBlockObjectResponse) {
     return block.quote.rich_text
       .map((snippet) => {
-        snippet.annotations.italic = true;
         snippet.annotations.underline = true;
         return snippet;
       })
@@ -195,23 +213,21 @@ export class ChannelService extends NotionService implements OnModuleInit {
   }
 
   private translateNumberedList(block: NumberedListItemBlockObjectResponse, numberedOrder: number) {
-    return block.numbered_list_item.rich_text
-      .map(this.translateRichTextSnippet)
-      .map((text) => TelegramService.escapeTextToMarkdownV2(`${numberedOrder}. ${text}`))
-      .join('');
+    const content = block.numbered_list_item.rich_text.map(this.translateRichTextSnippet).join('');
+    return TelegramService.escapeTextToMarkdownV2(`${numberedOrder}. `) + content;
   }
 
   private translateBulletedList(block: BulletedListItemBlockObjectResponse) {
-    return block.bulleted_list_item.rich_text
-      .map(this.translateRichTextSnippet)
-      .map((text) => TelegramService.escapeTextToMarkdownV2(`- ${text}`))
-      .join('');
+    const content = block.bulleted_list_item.rich_text.map(this.translateRichTextSnippet).join('');
+    return TelegramService.escapeTextToMarkdownV2(`- `) + content;
   }
 
   private translateCode(block: CodeBlockObjectResponse) {
     const language = block.code.language;
     const startLine = TelegramService.escapeTextToMarkdownV2('```' + language);
-    const codeBlock = `\`\`\`${language}\n${block.code.rich_text[0].plain_text}\n\`\`\``;
+    const codeBlock = block.code.rich_text
+      .map((snippet) => `\`\`\`${language}\n${snippet.plain_text}\n\`\`\``)
+      .join('');
     const endLine = TelegramService.escapeTextToMarkdownV2('```');
     return `${startLine}\n${codeBlock}\n${endLine}`;
   }

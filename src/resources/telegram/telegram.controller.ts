@@ -7,8 +7,13 @@ import { ApiTags } from '@nestjs/swagger';
 export class TelegramController {
   constructor(private readonly telegramService: TelegramService) {}
 
-  @Get('me')
+  @Get('getMe')
   getMe() {
     return this.telegramService.getMe();
+  }
+
+  @Get('getChat')
+  getChat() {
+    return this.telegramService.getChat();
   }
 }
