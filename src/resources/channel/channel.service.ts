@@ -13,7 +13,6 @@ import {
   QuoteBlockObjectResponse,
 } from '@notionhq/client/build/src/api-endpoints';
 import { TelegramService } from '../telegram/telegram.service';
-import * as fs from 'fs';
 
 @Injectable()
 export class ChannelService extends NotionService implements OnModuleInit {
@@ -74,15 +73,19 @@ export class ChannelService extends NotionService implements OnModuleInit {
       throw new Error('Content Too Long.');
     }
 
-    fs.writeFileSync('publishingContent.md', publishingContent);
+    await this.publishToTelegram(publishingCovers, publishingContent);
 
+    return { code: 0, message: 'ok', data: { pageCtx, publishingCovers, publishingContent } };
+  }
+
+  private async publishToTelegram(publishingCovers: string[], publishingContent: string) {
     // 无图片
     if (!publishingCovers.length) {
-      return this.telegramService.sendMessage(publishingContent, { parse_mode: 'MarkdownV2' });
+      await this.telegramService.sendMessage(publishingContent, { parse_mode: 'MarkdownV2' });
     }
     // 1 张图片
     else if (publishingCovers.length === 1) {
-      return this.telegramService.sendPhoto(publishingCovers[0], {
+      await this.telegramService.sendPhoto(publishingCovers[0], {
         parse_mode: 'MarkdownV2',
         caption: publishingContent,
       });
@@ -91,21 +94,6 @@ export class ChannelService extends NotionService implements OnModuleInit {
     else {
       // return this.telegramService.sendPhotoGroup(publishingCovers[0], { parse_mode: 'MarkdownV2', caption: publishingContent });
     }
-
-    // // 无图片
-    // if (!COVERS.length) {
-    //   await this.telegramService.sendMessage({ text: TEXT });
-    // }
-    // // 1 张图片
-    // else if (COVERS.length === 1) {
-    //   await this.telegramService.sendPhoto({ caption: TEXT, photo: COVERS[0] });
-    // }
-    // // 多图
-    // else {
-    //   await this.telegramService.sendPhotoGroup({ type: MediaTypes.PHOTO, media: COVERS });
-    // }
-
-    return publishingContent;
   }
 
   private buildPublishingCovers(pageCtx: PageObjectResponse) {
@@ -130,56 +118,23 @@ export class ChannelService extends NotionService implements OnModuleInit {
 
     // 添加标题
     if (!this.getPageProperty(pageCtx, 'IsHideTitle')) {
-      const icon = this.getPublishingIcon(pageCtx);
-      const title = this.getPublishingTitle(pageCtx);
+      const icon = this.buildPublishingIcon(pageCtx);
+      const title = this.buildPublishingTitle(pageCtx);
       publishingContent += `\n\n${icon} ${title}`;
     }
 
     // 添加内容
-    const content = await this.getPublishingContent(pageCtx);
-    publishingContent += `\n\n${content}`;
-
-    // 添加 Copyright
-    if (!this.getPageProperty(pageCtx, 'IsHideCopyright')) {
-      publishingContent += `\n\n频道：@AboutZY`;
-    }
-
-    return publishingContent;
-  }
-
-  private getPublishingLink(text: string, link: string) {
-    return `[${text}](${TelegramService.escapeTextToMarkdownV2(link)})`;
-  }
-
-  private getPublishingIcon(pageCtx: PageObjectResponse) {
-    return pageCtx.icon.type === 'emoji' ? pageCtx.icon.emoji : '🤖';
-  }
-
-  private getPublishingTitle(pageCtx: PageObjectResponse) {
-    const plainTextTitle = this.getPageProperty(pageCtx, 'Name')
-      .map((title) => title.plain_text)
-      .join('');
-    const escapedTitle = TelegramService.escapeTextToMarkdownV2(plainTextTitle);
-    const boldedTitle = `*${escapedTitle}*`;
-
-    return this.getPageProperty(pageCtx, 'TitleLink')
-      ? this.getPublishingLink(boldedTitle, this.getPageProperty(pageCtx, 'TitleLink'))
-      : boldedTitle;
-  }
-
-  private async getPublishingContent(pageCtx: PageObjectResponse) {
     let numberedOrder = 0;
     const pageBlocks = await this.getFulfilledBlocksList(pageCtx.id);
-
-    return (pageBlocks as BlockObjectResponse[])
+    const content = (pageBlocks as BlockObjectResponse[])
       .map((block) => {
         // 根据段落类型进行转义
         const supportedBlockTypeProducer = {
           paragraph: this.translateParagraphBlock,
           quote: this.translateQuoteBlock,
-          numbered_list_item: this.translateNumberedList,
-          bulleted_list_item: this.translateBulletedList,
-          code: this.translateCode,
+          numbered_list_item: this.translateNumberedListItemBlock,
+          bulleted_list_item: this.translateBulletedListItemBlock,
+          code: this.translateCodeBlock,
         };
 
         if (!supportedBlockTypeProducer[block.type]) {
@@ -196,6 +151,34 @@ export class ChannelService extends NotionService implements OnModuleInit {
       })
       .join('\n')
       .trim();
+    publishingContent += `\n\n${content}`;
+
+    // 添加 Copyright
+    if (!this.getPageProperty(pageCtx, 'IsHideCopyright')) {
+      publishingContent += `\n\n频道：@AboutZY`;
+    }
+
+    return publishingContent;
+  }
+
+  private buildPublishingLink(text: string, link: string) {
+    return `[${text}](${TelegramService.escapeTextToMarkdownV2(link)})`;
+  }
+
+  private buildPublishingIcon(pageCtx: PageObjectResponse) {
+    return pageCtx.icon.type === 'emoji' ? pageCtx.icon.emoji : '🤖';
+  }
+
+  private buildPublishingTitle(pageCtx: PageObjectResponse) {
+    const plainTextTitle = this.getPageProperty(pageCtx, 'Name')
+      .map((title) => title.plain_text)
+      .join('');
+    const escapedTitle = TelegramService.escapeTextToMarkdownV2(plainTextTitle);
+    const boldedTitle = `*${escapedTitle}*`;
+
+    return this.getPageProperty(pageCtx, 'TitleLink')
+      ? this.buildPublishingLink(boldedTitle, this.getPageProperty(pageCtx, 'TitleLink'))
+      : boldedTitle;
   }
 
   private translateParagraphBlock(block: ParagraphBlockObjectResponse) {
@@ -212,17 +195,17 @@ export class ChannelService extends NotionService implements OnModuleInit {
       .join('');
   }
 
-  private translateNumberedList(block: NumberedListItemBlockObjectResponse, numberedOrder: number) {
+  private translateNumberedListItemBlock(block: NumberedListItemBlockObjectResponse, numberedOrder: number) {
     const content = block.numbered_list_item.rich_text.map(this.translateRichTextSnippet).join('');
     return TelegramService.escapeTextToMarkdownV2(`${numberedOrder}. `) + content;
   }
 
-  private translateBulletedList(block: BulletedListItemBlockObjectResponse) {
+  private translateBulletedListItemBlock(block: BulletedListItemBlockObjectResponse) {
     const content = block.bulleted_list_item.rich_text.map(this.translateRichTextSnippet).join('');
     return TelegramService.escapeTextToMarkdownV2(`- `) + content;
   }
 
-  private translateCode(block: CodeBlockObjectResponse) {
+  private translateCodeBlock(block: CodeBlockObjectResponse) {
     const language = block.code.language;
     const startLine = TelegramService.escapeTextToMarkdownV2('```' + language);
     const codeBlock = block.code.rich_text
@@ -246,7 +229,7 @@ export class ChannelService extends NotionService implements OnModuleInit {
     // finalText = finalText.replaceAll(`\\|\\|`, '||');
 
     // 如果包含链接
-    if (snippet.href) finalText = this.getPublishingLink(finalText, snippet.href);
+    if (snippet.href) finalText = this.buildPublishingLink(finalText, snippet.href);
 
     return finalText;
   }

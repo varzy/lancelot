@@ -66,4 +66,8 @@ export class NotionService {
     const blocksCtx = await this.getBlocksFulfilled(blockOrPageId);
     return blocksCtx.results;
   }
+
+  async updateProperty(pageId: string, properties: Record<string, any>) {
+    return this.notionClient.pages.update({ page_id: pageId, properties });
+  }
 }
