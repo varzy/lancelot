@@ -12,3 +12,8 @@ interface NotionConfig {
   token: string;
   channelDatabaseId: string;
 }
+
+interface TelegramConfig {
+  token: string;
+  chatId: string;
+}

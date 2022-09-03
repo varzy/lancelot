@@ -1,27 +1,31 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, OnModuleInit } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import * as Dayjs from 'dayjs';
 import { NotionService } from '../notion/notion.service';
 import NotionConfig from '../../config/notion.config';
 import {
   BlockObjectResponse,
+  BulletedListItemBlockObjectResponse,
+  CodeBlockObjectResponse,
   NumberedListItemBlockObjectResponse,
-  NumberPropertyItemObjectResponse,
   PageObjectResponse,
   ParagraphBlockObjectResponse,
   QuoteBlockObjectResponse,
 } from '@notionhq/client/build/src/api-endpoints';
-import { TelegramService } from '../../modules/telegram/telegram.service';
+import { TelegramService } from '../telegram/telegram.service';
 
 @Injectable()
-export class ChannelService extends NotionService {
-  private readonly notionConfig: NotionConfig;
+export class ChannelService extends NotionService implements OnModuleInit {
   private readonly databaseId: string;
 
-  constructor(protected readonly configService: ConfigService) {
+  constructor(protected readonly configService: ConfigService, private readonly telegramService: TelegramService) {
     super(configService);
-    this.notionConfig = this.configService.get<NotionConfig>('notion');
-    this.databaseId = this.notionConfig.channelDatabaseId;
+    const notionConfig = this.configService.get<NotionConfig>('notion');
+    this.databaseId = notionConfig.channelDatabaseId;
+  }
+
+  onModuleInit() {
+    console.log('ChannelService Module Init');
   }
 
   async publishById(id: string) {
@@ -59,11 +63,37 @@ export class ChannelService extends NotionService {
   }
 
   private async publishPage(pageCtx: PageObjectResponse) {
-    const publishingCovers = this.getPublishingCovers(pageCtx);
+    const publishingCovers = this.buildPublishingCovers(pageCtx);
     if (publishingCovers.length > 10) {
-      throw new Error('Too Many Covers.');
+      throw new Error('Covers Too Many.');
     }
 
+    const publishingContent = await this.buildPublishingContent(pageCtx);
+    if (publishingContent.length > 4096) {
+      throw new Error('Content Too Long.');
+    }
+
+    // // 无图片
+    // if (!COVERS.length) {
+    //   await this.telegramService.sendMessage({ text: TEXT });
+    // }
+    // // 1 张图片
+    // else if (COVERS.length === 1) {
+    //   await this.telegramService.sendPhoto({ caption: TEXT, photo: COVERS[0] });
+    // }
+    // // 多图
+    // else {
+    //   await this.telegramService.sendPhotoGroup({ type: MediaTypes.PHOTO, media: COVERS });
+    // }
+
+    return publishingContent;
+  }
+
+  private buildPublishingCovers(pageCtx: PageObjectResponse) {
+    return this.getPageProperty(pageCtx, 'Cover').map((cover) => cover.file.url);
+  }
+
+  private async buildPublishingContent(pageCtx: PageObjectResponse) {
     let publishingContent = '';
 
     // 添加分类
@@ -90,11 +120,12 @@ export class ChannelService extends NotionService {
     const content = await this.getPublishingContent(pageCtx);
     publishingContent += `\n\n${content}`;
 
-    return publishingContent;
-  }
+    // 添加 Copyright
+    if (!this.getPageProperty(pageCtx, 'IsHideCopyright')) {
+      publishingContent += `\n\n频道：@AboutZY`;
+    }
 
-  private getPublishingCovers(pageCtx: PageObjectResponse) {
-    return this.getPageProperty(pageCtx, 'Cover').map((cover) => cover.file.url);
+    return publishingContent;
   }
 
   private getPublishingLink(text: string, link: string) {
@@ -170,12 +201,19 @@ export class ChannelService extends NotionService {
       .join('');
   }
 
-  private translateBulletedList(block: BlockObjectResponse) {
-    //
+  private translateBulletedList(block: BulletedListItemBlockObjectResponse) {
+    return block.bulleted_list_item.rich_text
+      .map(this.translateRichTextSnippet)
+      .map((text) => TelegramService.escapeTextToMarkdownV2(`- ${text}`))
+      .join('');
   }
 
-  private translateCode(block: BlockObjectResponse) {
-    //
+  private translateCode(block: CodeBlockObjectResponse) {
+    const language = block.code.language;
+    const startLine = TelegramService.escapeTextToMarkdownV2('```' + language);
+    const codeBlock = `\`\`\`${language}\n${block.code.rich_text[0].plain_text}\n\`\`\``;
+    const endLine = TelegramService.escapeTextToMarkdownV2('```');
+    return `${startLine}\n${codeBlock}\n${endLine}`;
   }
 
   private translateRichTextSnippet(snippet) {
