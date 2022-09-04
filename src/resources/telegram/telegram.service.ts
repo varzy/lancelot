@@ -7,8 +7,10 @@ import { SetWebhookDto } from './dto/set-webhook.dto';
 @Injectable()
 export class TelegramService implements OnModuleInit {
   private readonly telegramConfig: TelegramConfig;
-  readonly telegram: Telegram;
   private readonly chatId: string;
+  private readonly bot: Telegraf;
+
+  // readonly telegram: Telegram;
 
   static escapeTextToMarkdownV2(text: string) {
     return text.replace(/[_*[\]()>~`#+\-=|{}.!\\]/g, '\\$&');
@@ -16,55 +18,60 @@ export class TelegramService implements OnModuleInit {
 
   constructor(private readonly configService: ConfigService) {
     this.telegramConfig = this.configService.get<TelegramConfig>('telegram');
+    this.chatId = this.telegramConfig.chatId;
     const telegramOptions: { agent?: HttpsProxyAgent } = {};
     if (process.env.APP_PROXY_ADDRESS) telegramOptions.agent = new HttpsProxyAgent(process.env.APP_PROXY_ADDRESS);
-    this.telegram = new Telegram(this.telegramConfig.token, telegramOptions);
-    this.chatId = this.telegramConfig.chatId;
+    this.bot = new Telegraf(this.telegramConfig.token, { telegram: telegramOptions });
   }
 
   onModuleInit() {
-    const bot = new Telegraf(this.telegramConfig.token);
-    bot.start((ctx) => ctx.reply('Welcome'));
-    bot.hears('hi', (ctx) => ctx.reply('Hey there'));
-    bot.command('oldschool', (ctx) => ctx.reply('Hello'));
-    bot.on('text', (ctx) => ctx.reply('Hello'));
+    this.bot.start((ctx) => ctx.reply('Welcome'));
+    this.bot.hears('hi', (ctx) => ctx.reply('Hey there'));
+    this.bot.command('oldschool', (ctx) => ctx.reply('Hello'));
+    this.bot.on('text', (ctx) => {
+      // Explicit usage
+      ctx.telegram.sendMessage(ctx.message.chat.id, `Hello ${ctx.state.role}`);
 
-    bot.launch({ webhook: { domain: 'https://lancelot.fly.dev/api/telegram/receiveWebhook' } });
+      // Using context shortcut
+      ctx.reply(`Hello ${ctx.state.role}`);
+    });
 
-    process.once('SIGINT', () => bot.stop('SIGINT'));
-    process.once('SIGTERM', () => bot.stop('SIGTERM'));
+    this.bot.launch({ webhook: { domain: 'lancelot.fly.dev' } });
+
+    process.once('SIGINT', () => this.bot.stop('SIGINT'));
+    process.once('SIGTERM', () => this.bot.stop('SIGTERM'));
   }
 
   setWebhook(setWebhookDto: SetWebhookDto) {
     const { url, ...extra } = setWebhookDto;
-    return this.telegram.setWebhook(url, extra);
+    return this.bot.telegram.setWebhook(url, extra);
   }
 
   getWebhookInfo() {
-    return this.telegram.getWebhookInfo();
+    return this.bot.telegram.getWebhookInfo();
   }
 
   getMe() {
-    return this.telegram.getMe();
+    return this.bot.telegram.getMe();
   }
 
   getChat() {
-    return this.telegram.getChat(this.chatId);
+    return this.bot.telegram.getChat(this.chatId);
   }
 
   sendMessage(text, extra?) {
-    return this.telegram.sendMessage(this.chatId, text, extra);
+    return this.bot.telegram.sendMessage(this.chatId, text, extra);
   }
 
   sendPhoto(photo, extra?) {
-    return this.telegram.sendPhoto(this.chatId, photo, extra);
+    return this.bot.telegram.sendPhoto(this.chatId, photo, extra);
   }
 
   sendMediaGroup(media, extra?) {
-    return this.telegram.sendMediaGroup(this.chatId, media, extra);
+    return this.bot.telegram.sendMediaGroup(this.chatId, media, extra);
   }
 
   protected callApiWrapChatId(...params) {
-    return (method) => this.telegram.callApi.call(this.telegram, method, { chat_id: this.chatId, ...params });
+    return (method) => this.bot.telegram.callApi.call(this.bot.telegram, method, { chat_id: this.chatId, ...params });
   }
 }
