@@ -4,6 +4,5 @@ COPY package.json ./
 COPY yarn.lock ./
 RUN yarn
 COPY . .
-ENV APP_ENV=prod
 RUN yarn build
 CMD ["yarn", "start:prod"]

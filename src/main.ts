@@ -36,6 +36,7 @@ async function bootstrap() {
   console.log(`---------------------------------------------`);
   console.log(`APP RUNNING AT: ${appConfig.port}`);
   console.log(`APP ENV: ${process.env.APP_ENV}`);
+  console.log(`APP APP PROXY ADDRESS: ${process.env.APP_PROXY_ADDRESS}`);
   console.log(`---------------------------------------------`);
 }
 
