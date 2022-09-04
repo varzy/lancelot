@@ -24,8 +24,8 @@ export class TelegramController {
     return this.telegramService.setWebhook(setWebhookDto);
   }
 
-  @Post('getUpdate')
-  getUpdate(@Body() telegramUpdate: Update) {
-    return this.telegramService.getUpdate(telegramUpdate);
+  @Post('getWebhookUpdate')
+  getWebhookUpdate(@Body() update: Update) {
+    return this.telegramService.getWebhookUpdate(update);
   }
 }

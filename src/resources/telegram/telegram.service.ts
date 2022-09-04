@@ -38,7 +38,9 @@ export class TelegramService implements OnModuleInit {
     return this.telegram.setWebhook(url, extra);
   }
 
-  getUpdate(update: Update) {
+  getWebhookUpdate(update: Update) {
+    console.log('getWebhookUpdate: ');
+    console.log(update);
     return update;
   }
 
