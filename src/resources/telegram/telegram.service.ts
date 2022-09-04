@@ -28,7 +28,7 @@ export class TelegramService implements OnModuleInit {
     bot.start((ctx) => ctx.reply('Welcome'));
     bot.hears('hi', (ctx) => ctx.reply('Hey there'));
 
-    bot.launch();
+    bot.launch({ webhook: { domain: 'lancelot.fly.dev' } });
     process.once('SIGINT', () => bot.stop('SIGINT'));
     process.once('SIGTERM', () => bot.stop('SIGTERM'));
   }
