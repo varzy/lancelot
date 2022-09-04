@@ -3,7 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import { Telegraf, Telegram } from 'telegraf';
 import { HttpsProxyAgent } from 'https-proxy-agent';
 import { SetWebhookDto } from './dto/set-webhook.dto';
-import { Update } from 'node-telegram-bot-api';
+import { Update, WebhookInfo } from 'node-telegram-bot-api';
 
 @Injectable()
 export class TelegramService implements OnModuleInit {
@@ -38,10 +38,10 @@ export class TelegramService implements OnModuleInit {
     return this.telegram.setWebhook(url, extra);
   }
 
-  getWebhookUpdate(update: Update) {
+  getWebhookInfo(webhookInfo: WebhookInfo) {
     console.log('getWebhookUpdate: ');
-    console.log(update);
-    return update;
+    console.log(webhookInfo);
+    return webhookInfo;
   }
 
   getMe() {

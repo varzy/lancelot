@@ -2,7 +2,7 @@ import { Body, Controller, Get, Post } from '@nestjs/common';
 import { TelegramService } from './telegram.service';
 import { ApiTags } from '@nestjs/swagger';
 import { SetWebhookDto } from './dto/set-webhook.dto';
-import { Update } from 'node-telegram-bot-api';
+import { Update, WebhookInfo } from 'node-telegram-bot-api';
 
 @ApiTags('Telegram')
 @Controller('telegram')
@@ -24,8 +24,8 @@ export class TelegramController {
     return this.telegramService.setWebhook(setWebhookDto);
   }
 
-  @Post('getWebhookUpdate')
-  getWebhookUpdate(@Body() update: Update) {
-    return this.telegramService.getWebhookUpdate(update);
+  @Post('receiveWebhookInfo')
+  receiveWebhookInfo(@Body() webhookInfo: WebhookInfo) {
+    return this.telegramService.getWebhookInfo(webhookInfo);
   }
 }
