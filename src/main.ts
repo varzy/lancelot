@@ -3,6 +3,7 @@ import { AppModule } from './app.module';
 import { ConfigService } from '@nestjs/config';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { ValidationPipe } from '@nestjs/common';
+import { HttpExceptionFilter } from './filters/http-exception.filter';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -13,7 +14,10 @@ async function bootstrap() {
   /**
    * Setup
    */
-  app.setGlobalPrefix('api').useGlobalPipes(new ValidationPipe({ transform: true }));
+  app
+    .setGlobalPrefix('api')
+    .useGlobalPipes(new ValidationPipe({ transform: true }))
+    .useGlobalFilters(new HttpExceptionFilter());
 
   /**
    * Swagger
@@ -30,8 +34,8 @@ async function bootstrap() {
   await app.listen(appConfig.port);
 
   console.log(`---------------------------------------------`);
-  console.log(`APP ENV: ${process.env.APP_ENV}`);
   console.log(`APP RUNNING AT: ${appConfig.port}`);
+  console.log(`APP ENV: ${process.env.APP_ENV}`);
   console.log(`---------------------------------------------`);
 }
 

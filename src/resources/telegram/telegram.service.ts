@@ -36,6 +36,10 @@ export class TelegramService {
     return this.telegram.sendPhoto(this.chatId, photo, extra);
   }
 
+  sendMediaGroup(media, extra?) {
+    return this.telegram.sendMediaGroup(this.chatId, media, extra);
+  }
+
   protected callApiWrapChatId(...params) {
     return (method) => this.telegram.callApi.call(this.telegram, method, { chat_id: this.chatId, ...params });
   }

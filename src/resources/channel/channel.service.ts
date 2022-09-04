@@ -1,6 +1,6 @@
-import { Injectable, OnModuleInit } from '@nestjs/common';
+import { HttpException, HttpStatus, Injectable, OnModuleInit } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import * as Dayjs from 'dayjs';
+import { Dayjs } from '../../utils/dayjs';
 import { NotionService } from '../notion/notion.service';
 import NotionConfig from '../../config/notion.config';
 import {
@@ -13,6 +13,7 @@ import {
   QuoteBlockObjectResponse,
 } from '@notionhq/client/build/src/api-endpoints';
 import { TelegramService } from '../telegram/telegram.service';
+import { InputMediaPhoto } from 'telegraf/types';
 
 @Injectable()
 export class ChannelService extends NotionService implements OnModuleInit {
@@ -51,7 +52,7 @@ export class ChannelService extends NotionService implements OnModuleInit {
     });
 
     if (!pages.results.length) {
-      return { code: 0, message: 'NOTHING_TO_PUBLISH' };
+      throw new HttpException('no_publishing_page', HttpStatus.BAD_REQUEST);
     }
 
     // 根据 PubPriority 字段对发送列表进行倒叙排序排列，越大的越靠前
@@ -63,17 +64,28 @@ export class ChannelService extends NotionService implements OnModuleInit {
   }
 
   private async publishPage(pageCtx: PageObjectResponse) {
+    if (this.getPageProperty(pageCtx, 'Status') !== 'Completed') {
+      throw new HttpException('status_is_not_completed', HttpStatus.BAD_REQUEST);
+    }
+
     const publishingCovers = this.buildPublishingCovers(pageCtx);
     if (publishingCovers.length > 10) {
-      throw new Error('Covers Too Many.');
+      throw new HttpException('covers_too_many', HttpStatus.BAD_REQUEST);
     }
 
     const publishingContent = await this.buildPublishingContent(pageCtx);
     if (publishingContent.length > 4096) {
-      throw new Error('Content Too Long.');
+      throw new HttpException('content_too_long', HttpStatus.BAD_REQUEST);
     }
 
     await this.publishToTelegram(publishingCovers, publishingContent);
+
+    await this.updateProperty(pageCtx.id, {
+      Status: { select: { name: 'UnNewsletter' } },
+      RealPubTime: {
+        date: { start: Dayjs().format('YYYY-MM-DD HH:mm:ss'), time_zone: Dayjs.tz.guess() },
+      },
+    });
 
     return { code: 0, message: 'ok', data: { pageCtx, publishingCovers, publishingContent } };
   }
@@ -92,7 +104,13 @@ export class ChannelService extends NotionService implements OnModuleInit {
     }
     // 多图
     else {
-      // return this.telegramService.sendPhotoGroup(publishingCovers[0], { parse_mode: 'MarkdownV2', caption: publishingContent });
+      const photos: InputMediaPhoto[] = publishingCovers.map((cover, index) => ({
+        type: 'photo',
+        media: cover,
+        parse_mode: 'MarkdownV2',
+        caption: index === 0 ? publishingContent : undefined,
+      }));
+      await this.telegramService.sendMediaGroup(photos);
     }
   }
 
@@ -106,7 +124,7 @@ export class ChannelService extends NotionService implements OnModuleInit {
     // 添加分类
     const category = this.getPageProperty(pageCtx, 'Category').name;
     if (!category) {
-      throw new Error('No Category.');
+      throw new HttpException('page_no_category', HttpStatus.BAD_REQUEST);
     }
     publishingContent += TelegramService.escapeTextToMarkdownV2(`#${category}`);
 
@@ -138,7 +156,7 @@ export class ChannelService extends NotionService implements OnModuleInit {
         };
 
         if (!supportedBlockTypeProducer[block.type]) {
-          throw new Error(`Unsupported Block Type: ${block.type}; BlockCtx: ${block}`);
+          throw new HttpException(`Unsupported Block Type: ${block.type}; BlockCtx: ${block}`, HttpStatus.BAD_REQUEST);
         }
 
         if (block.type === 'numbered_list_item') {
