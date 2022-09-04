@@ -36,7 +36,8 @@ export class TelegramService implements OnModuleInit {
       ctx.reply(`Hello ${ctx.state.role}`);
     });
 
-    this.bot.launch({ webhook: { domain: 'https://lancelot.fly.dev/api/telegram/receiveWebhook' } });
+    // this.bot.launch({ webhook: { domain: 'https://lancelot.fly.dev/api/telegram/receiveWebhook' } });
+    this.bot.launch();
 
     process.once('SIGINT', () => this.bot.stop('SIGINT'));
     process.once('SIGTERM', () => this.bot.stop('SIGTERM'));
