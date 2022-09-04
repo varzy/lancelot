@@ -3,7 +3,6 @@ import { ConfigService } from '@nestjs/config';
 import { Telegraf, Telegram } from 'telegraf';
 import { HttpsProxyAgent } from 'https-proxy-agent';
 import { SetWebhookDto } from './dto/set-webhook.dto';
-import { WebhookInfo } from 'node-telegram-bot-api';
 
 @Injectable()
 export class TelegramService implements OnModuleInit {
@@ -30,7 +29,8 @@ export class TelegramService implements OnModuleInit {
     bot.command('oldschool', (ctx) => ctx.reply('Hello'));
     bot.on('text', (ctx) => ctx.reply('Hello'));
 
-    bot.launch({ webhook: { domain: 'https://lancelot.fly.dev' } });
+    bot.launch({ webhook: { domain: 'https://lancelot.fly.dev/api/telegram/receiveWebhook' } });
+
     process.once('SIGINT', () => bot.stop('SIGINT'));
     process.once('SIGTERM', () => bot.stop('SIGTERM'));
   }
@@ -40,10 +40,8 @@ export class TelegramService implements OnModuleInit {
     return this.telegram.setWebhook(url, extra);
   }
 
-  getWebhookInfo(webhookInfo: WebhookInfo) {
-    console.log('getWebhookUpdate: ');
-    console.log(webhookInfo);
-    return webhookInfo;
+  getWebhookInfo() {
+    return this.telegram.getWebhookInfo();
   }
 
   getMe() {
