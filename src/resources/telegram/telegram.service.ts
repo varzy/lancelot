@@ -1,10 +1,12 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, OnModuleInit } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { Telegram } from 'telegraf';
+import { Telegraf, Telegram } from 'telegraf';
 import { HttpsProxyAgent } from 'https-proxy-agent';
+import { SetWebhookDto } from './dto/set-webhook.dto';
 
 @Injectable()
-export class TelegramService {
+export class TelegramService implements OnModuleInit {
+  private readonly telegramConfig: TelegramConfig;
   readonly telegram: Telegram;
   private readonly chatId: string;
 
@@ -13,11 +15,26 @@ export class TelegramService {
   }
 
   constructor(private readonly configService: ConfigService) {
-    const telegramConfig = this.configService.get<TelegramConfig>('telegram');
+    this.telegramConfig = this.configService.get<TelegramConfig>('telegram');
     const telegramOptions: { agent?: HttpsProxyAgent } = {};
     if (process.env.APP_PROXY_ADDRESS) telegramOptions.agent = new HttpsProxyAgent(process.env.APP_PROXY_ADDRESS);
-    this.telegram = new Telegram(telegramConfig.token, telegramOptions);
-    this.chatId = telegramConfig.chatId;
+    this.telegram = new Telegram(this.telegramConfig.token, telegramOptions);
+    this.chatId = this.telegramConfig.chatId;
+  }
+
+  onModuleInit() {
+    const bot = new Telegraf(this.telegramConfig.token);
+    bot.start((ctx) => ctx.reply('Welcome'));
+    bot.hears('hi', (ctx) => ctx.reply('Hey there'));
+
+    bot.launch();
+    process.once('SIGINT', () => bot.stop('SIGINT'));
+    process.once('SIGTERM', () => bot.stop('SIGTERM'));
+  }
+
+  setWebhook(setWebhookDto: SetWebhookDto) {
+    const { url, ...extra } = setWebhookDto;
+    return this.telegram.setWebhook(url, extra);
   }
 
   getMe() {

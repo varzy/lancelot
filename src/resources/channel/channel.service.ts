@@ -87,7 +87,7 @@ export class ChannelService extends NotionService implements OnModuleInit {
       },
     });
 
-    return { code: 0, message: 'ok', data: { pageCtx, publishingCovers, publishingContent } };
+    return { pageCtx, publishingCovers, publishingContent };
   }
 
   private async publishToTelegram(publishingCovers: string[], publishingContent: string) {
