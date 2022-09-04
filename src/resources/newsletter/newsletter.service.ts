@@ -1,26 +1,19 @@
 import { Injectable } from '@nestjs/common';
-import { CreateNewsletterDto } from './dto/create-newsletter.dto';
-import { UpdateNewsletterDto } from './dto/update-newsletter.dto';
+import { ConfigService } from '@nestjs/config';
+import { NotionService } from '../notion/notion.service';
+import { GenerateNewsletterDto } from './dto/generate-newsletter.dto';
 
 @Injectable()
-export class NewsletterService {
-  create(createNewsletterDto: CreateNewsletterDto) {
-    return 'This action adds a new newsletter';
+export class NewsletterService extends NotionService {
+  constructor(protected readonly configService: ConfigService) {
+    super(configService);
   }
 
-  findAll() {
-    return `This action returns all newsletter`;
+  generate(generateNewsletterDto: GenerateNewsletterDto) {
+    return generateNewsletterDto;
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} newsletter`;
-  }
-
-  update(id: number, updateNewsletterDto: UpdateNewsletterDto) {
-    return `This action updates a #${id} newsletter`;
-  }
-
-  remove(id: number) {
-    return `This action removes a #${id} newsletter`;
+  publish() {
+    //
   }
 }
