@@ -64,7 +64,7 @@ export class ChannelService extends NotionService implements OnModuleInit {
   }
 
   private async publishPage(pageCtx: PageObjectResponse) {
-    if (this.getPageProperty(pageCtx, 'Status') !== 'Completed') {
+    if (this.getPageProperty(pageCtx, 'Status').name !== 'Completed') {
       throw new HttpException('status_is_not_completed', HttpStatus.BAD_REQUEST);
     }
 
