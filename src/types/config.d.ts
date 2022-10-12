@@ -11,6 +11,7 @@ interface SwaggerConfig {
 interface NotionConfig {
   token: string;
   channelDatabaseId: string;
+  newsletterDatabaseId: string;
 }
 
 interface TelegramConfig {

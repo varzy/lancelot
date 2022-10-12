@@ -70,4 +70,12 @@ export class NotionService {
   async updateProperty(pageId: string, properties: Record<string, any>) {
     return this.notionClient.pages.update({ page_id: pageId, properties });
   }
+
+  buildBlock(type, ctx, rootProps = {}) {
+    return {
+      type,
+      [type]: ctx,
+      ...rootProps,
+    };
+  }
 }

@@ -1,6 +1,6 @@
 import { Injectable, OnModuleInit } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { Telegraf, Telegram } from 'telegraf';
+import { Telegraf } from 'telegraf';
 import { HttpsProxyAgent } from 'https-proxy-agent';
 import { SetWebhookDto } from './dto/set-webhook.dto';
 
@@ -9,8 +9,6 @@ export class TelegramService implements OnModuleInit {
   private readonly telegramConfig: TelegramConfig;
   private readonly chatId: string;
   private readonly bot: Telegraf;
-
-  // readonly telegram: Telegram;
 
   static escapeTextToMarkdownV2(text: string) {
     return text.replace(/[_*[\]()>~`#+\-=|{}.!\\]/g, '\\$&');
@@ -25,6 +23,10 @@ export class TelegramService implements OnModuleInit {
   }
 
   onModuleInit() {
+    // this.launchBot();
+  }
+
+  launchBot() {
     this.bot.start((ctx) => ctx.reply('Welcome'));
     this.bot.hears('hi', (ctx) => ctx.reply('Hey there'));
     this.bot.command('oldschool', (ctx) => ctx.reply('Hello'));
