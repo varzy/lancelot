@@ -6,6 +6,7 @@ import NotionConfig from '../../config/notion.config';
 import { Dayjs } from '../../utils/dayjs';
 import { BlockObjectResponse, PageObjectResponse } from '@notionhq/client/build/src/api-endpoints';
 import { PublishNewsletterDto } from './dto/publish-newsletter.dto';
+import * as fs from 'fs';
 
 @Injectable()
 export class NewsletterService extends NotionService {
@@ -21,10 +22,10 @@ export class NewsletterService extends NotionService {
 
   async generate(generateNewsletterDto: GenerateNewsletterDto) {
     // 获取准备发布的 posts
-    const publishingPosts = await this.getPublishingPosts(
-      generateNewsletterDto.start_day || Dayjs().subtract(7, 'day').format('YYYY-MM-DD'),
-      generateNewsletterDto.end_day || Dayjs().format('YYYY-MM-DD'),
-    );
+    const now = new Date();
+    const startTime = Dayjs(generateNewsletterDto.start_time || now).subtract(14, 'day');
+    const endTime = Dayjs(generateNewsletterDto.end_time || now);
+    const publishingPosts = await this.getPublishingPosts(startTime, endTime);
 
     if (!publishingPosts) return new HttpException('nothing_to_build_newsletter', HttpStatus.BAD_REQUEST);
 
@@ -97,43 +98,29 @@ export class NewsletterService extends NotionService {
   }
 
   /**
-   * Notion Api 关于时间的 filter 规则实在太难用，因此获取前 100 条后在本地进行时间匹配
+   * Notion Api 无法按照时间范围进行过滤，因此先取出全部页面，在本地进行过滤
    */
-  private async getPublishingPosts(startTime: string, endTime: string) {
+  private async getPublishingPosts(startTime: Dayjs.Dayjs, endTime: Dayjs.Dayjs) {
     const unNewsletterPosts = await this.notionClient.databases.query({
       database_id: this.channelDatabaseId,
       page_size: 100,
-      filter: {
-        property: 'Status',
-        select: { equals: 'UnNewsletter' },
-      },
+      filter: { property: 'Status', select: { equals: 'UnNewsletter' } },
     });
 
-    return (
-      unNewsletterPosts.results
-        // 根据时间进行过滤
-        .filter((post) => {
-          const realPubTime = Dayjs(this.getPageProperty(post, 'RealPubTime').start);
-          const filterStartTime = Dayjs(startTime).startOf('day');
-          const filterEndTime = Dayjs(endTime).endOf('day');
-          return realPubTime.isSameOrBefore(filterEndTime) && realPubTime.isSameOrAfter(filterStartTime);
-        })
-        // 根据真实发布时间进行排序
-        .sort(
-          (a, b) =>
-            +new Date(this.getPageProperty(a, 'RealPubTime').start) -
-            +new Date(this.getPageProperty(b, 'RealPubTime').start),
-        )
-        // 根据生成排序属性进行重排序
-        .sort((a, b) => {
-          const aIndex = this.getPageProperty(a, 'NLGenPriority') || Infinity;
-          const bIndex = this.getPageProperty(b, 'NLGenPriority') || Infinity;
-
-          return aIndex - bIndex;
-
-          // this.getPageProperty(b, 'NLGenPriority') - this.getPageProperty(a, 'NLGenPriority')
-        })
-    );
+    return unNewsletterPosts.results
+      .filter((post) => {
+        const realPubTime = Dayjs(this.getPageProperty(post, 'RealPubTime').start);
+        return realPubTime.isSameOrBefore(endTime) && realPubTime.isSameOrAfter(startTime);
+      })
+      .sort(
+        (a, b) =>
+          +new Date(this.getPageProperty(a, 'RealPubTime').start) -
+          +new Date(this.getPageProperty(b, 'RealPubTime').start),
+      )
+      .sort(
+        (a, b) =>
+          this.getPageProperty(a, 'NLGenPriority') || Infinity - this.getPageProperty(b, 'NLGenPriority') || Infinity,
+      );
   }
 
   /**
@@ -152,27 +139,26 @@ export class NewsletterService extends NotionService {
     const currentNO = Math.floor(latestNO) + 1;
 
     // ============ 生成标题 ============
-    let emojiFromFirstPost;
-    // 取每个分类下的第一个 Post 的标题组合成新标题
-    const pageTitleItems = publishingPosts.map((post) => {
-      // 默认使用第一个页面的 emoji
-      if (!emojiFromFirstPost && post.icon.type === 'emoji') emojiFromFirstPost = post.icon.emoji;
-      console.log(post);
-
-      return this.getPageProperty(post, 'Name')
-        .map((title) => title.plain_text)
-        .join('');
-    });
-    const pageTitleContent = pageTitleItems.join('、').replaceAll('《', '').replaceAll('》', '');
+    let pageEmoji;
+    const pageTitle = publishingPosts
+      .map((post) => {
+        if (!pageEmoji && post.icon.type === 'emoji') pageEmoji = post.icon.emoji;
+        return this.getPageProperty(post, 'Name')
+          .map((title) => title.plain_text)
+          .join('');
+      })
+      .join('、')
+      .replaceAll('《', '')
+      .replaceAll('》', '');
 
     return await this.notionClient.pages.create({
       parent: { database_id: this.newsletterDatabaseId },
-      icon: { type: 'emoji', emoji: emojiFromFirstPost },
+      icon: { type: 'emoji', emoji: pageEmoji || '😃' },
       properties: {
         Name: {
           title: [
             {
-              text: { content: `#${currentNO}｜${pageTitleContent}` },
+              text: { content: `#${currentNO}｜${pageTitle}` },
             },
           ],
         },
@@ -180,14 +166,14 @@ export class NewsletterService extends NotionService {
         RelatedToChannelPosts: {
           relation: publishingPosts.map((post) => ({ id: post.id })),
         },
-        CreatedAt: {
-          date: {
-            start: Dayjs().toISOString(),
-            time_zone: 'Asia/Shanghai',
-            // time_zone: Dayjs.tz('')
-            // time_zone: null,
-          },
-        },
+        // CreatedAt: {
+        //   date: {
+        //     start: Dayjs().format('YYYY-MM-DD hh:mm:ss'),
+        //     time_zone: 'Asia/Shanghai',
+        //     // time_zone: Dayjs.tz('')
+        //     // time_zone: null,
+        //   },
+        // },
       },
     });
   }

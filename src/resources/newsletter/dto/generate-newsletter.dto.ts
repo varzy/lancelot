@@ -1,5 +1,5 @@
 export class GenerateNewsletterDto {
-  start_day?: string;
+  start_time?: string;
 
-  end_day?: string;
+  end_time?: string;
 }

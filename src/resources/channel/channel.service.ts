@@ -14,6 +14,7 @@ import {
 } from '@notionhq/client/build/src/api-endpoints';
 import { TelegramService } from '../telegram/telegram.service';
 import { InputMediaPhoto } from 'telegraf/types';
+import { getIsoTime } from '../../utils/helpers';
 
 @Injectable()
 export class ChannelService extends NotionService implements OnModuleInit {
@@ -82,9 +83,7 @@ export class ChannelService extends NotionService implements OnModuleInit {
 
     await this.updateProperty(pageCtx.id, {
       Status: { select: { name: 'UnNewsletter' } },
-      RealPubTime: {
-        date: { start: Dayjs().format('YYYY-MM-DD HH:mm:ss'), time_zone: Dayjs.tz.guess() },
-      },
+      RealPubTime: { date: { start: getIsoTime() } },
     });
 
     return { pageCtx, publishingCovers, publishingContent };
