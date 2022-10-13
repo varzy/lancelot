@@ -34,14 +34,14 @@ export class ChannelService extends NotionService implements OnModuleInit {
     return this.publishPage(pageCtx as PageObjectResponse);
   }
 
-  async publishByDay(day?: string) {
+  async publishByDay(day: string | Date) {
     const pages = await this.notionClient.databases.query({
       database_id: this.databaseId,
       filter: {
         and: [
           {
             property: 'PlanningPublish',
-            date: { equals: Dayjs(day || new Date()).format('YYYY-MM-DD') },
+            date: { equals: Dayjs(day).format('YYYY-MM-DD') },
           },
           {
             property: 'Status',
@@ -200,7 +200,7 @@ export class ChannelService extends NotionService implements OnModuleInit {
   }
 
   private translateParagraphBlock(block: ParagraphBlockObjectResponse) {
-    return block.paragraph.rich_text.map(this.translateRichTextSnippet).join('');
+    return block.paragraph.rich_text.map(this.translateRichTextSnippet.bind(this)).join('');
   }
 
   private translateQuoteBlock(block: QuoteBlockObjectResponse) {
@@ -209,17 +209,17 @@ export class ChannelService extends NotionService implements OnModuleInit {
         snippet.annotations.underline = true;
         return snippet;
       })
-      .map(this.translateRichTextSnippet)
+      .map(this.translateRichTextSnippet.bind(this))
       .join('');
   }
 
   private translateNumberedListItemBlock(block: NumberedListItemBlockObjectResponse, numberedOrder: number) {
-    const content = block.numbered_list_item.rich_text.map(this.translateRichTextSnippet).join('');
+    const content = block.numbered_list_item.rich_text.map(this.translateRichTextSnippet.bind(this)).join('');
     return TelegramService.escapeTextToMarkdownV2(`${numberedOrder}. `) + content;
   }
 
   private translateBulletedListItemBlock(block: BulletedListItemBlockObjectResponse) {
-    const content = block.bulleted_list_item.rich_text.map(this.translateRichTextSnippet).join('');
+    const content = block.bulleted_list_item.rich_text.map(this.translateRichTextSnippet.bind(this)).join('');
     return TelegramService.escapeTextToMarkdownV2(`- `) + content;
   }
 

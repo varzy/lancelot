@@ -9,28 +9,27 @@ import { PublishNewsletterDto } from './dto/publish-newsletter.dto';
 
 @Injectable()
 export class NewsletterService extends NotionService {
-  private readonly databaseId: string;
+  private readonly channelDatabaseId: string;
+  private readonly newsletterDatabaseId: string;
 
   constructor(protected readonly configService: ConfigService) {
     super(configService);
     const notionConfig = this.configService.get<NotionConfig>('notion');
-    this.databaseId = notionConfig.newsletterDatabaseId;
+    this.channelDatabaseId = notionConfig.channelDatabaseId;
+    this.newsletterDatabaseId = notionConfig.newsletterDatabaseId;
   }
 
   async generate(generateNewsletterDto: GenerateNewsletterDto) {
     // 获取准备发布的 posts
     const publishingPosts = await this.getPublishingPosts(
-      generateNewsletterDto.start_day,
-      generateNewsletterDto.end_day,
+      generateNewsletterDto.start_day || Dayjs().subtract(7, 'day').format('YYYY-MM-DD'),
+      generateNewsletterDto.end_day || Dayjs().format('YYYY-MM-DD'),
     );
 
     if (!publishingPosts) return new HttpException('nothing_to_build_newsletter', HttpStatus.BAD_REQUEST);
 
     // 创建新的 newsletter 页面
-    const newsletterPageCtx = await this.createNewNewsletterPage(
-      // newsletterGroups,
-      publishingPosts as PageObjectResponse[],
-    );
+    const newsletterPageCtx = await this.createNewNewsletterPage(publishingPosts as PageObjectResponse[]);
 
     // 插入目录
     await this.insertTableOfContents(newsletterPageCtx as PageObjectResponse);
@@ -53,7 +52,7 @@ export class NewsletterService extends NotionService {
     let targetNewsletterId = publishNewsletterDto.id;
     if (!targetNewsletterId) {
       const unpublishedNewsletters = await this.notionClient.databases.query({
-        database_id: this.databaseId,
+        database_id: this.newsletterDatabaseId,
         filter: {
           property: 'IsPublished',
           checkbox: { equals: false },
@@ -102,7 +101,7 @@ export class NewsletterService extends NotionService {
    */
   private async getPublishingPosts(startTime: string, endTime: string) {
     const unNewsletterPosts = await this.notionClient.databases.query({
-      database_id: this.databaseId,
+      database_id: this.channelDatabaseId,
       page_size: 100,
       filter: {
         property: 'Status',
@@ -126,7 +125,14 @@ export class NewsletterService extends NotionService {
             +new Date(this.getPageProperty(b, 'RealPubTime').start),
         )
         // 根据生成排序属性进行重排序
-        .sort((a, b) => this.getPageProperty(b, 'NLGenPriority') - this.getPageProperty(a, 'NLGenPriority'))
+        .sort((a, b) => {
+          const aIndex = this.getPageProperty(a, 'NLGenPriority') || Infinity;
+          const bIndex = this.getPageProperty(b, 'NLGenPriority') || Infinity;
+
+          return aIndex - bIndex;
+
+          // this.getPageProperty(b, 'NLGenPriority') - this.getPageProperty(a, 'NLGenPriority')
+        })
     );
   }
 
@@ -136,9 +142,9 @@ export class NewsletterService extends NotionService {
   private async createNewNewsletterPage(publishingPosts: PageObjectResponse[]) {
     const publishedPages = await this.notionClient.databases.query({
       // ============ 获取期号 ============
-      database_id: this.databaseId,
+      database_id: this.newsletterDatabaseId,
       filter: { property: 'IsPublished', checkbox: { equals: true } },
-      sorts: [{ property: 'created_time', direction: 'descending' }],
+      sorts: [{ property: 'CreatedAt', direction: 'descending' }],
     });
     const latestPage = publishedPages.results[0];
     const latestNO = latestPage ? this.getPageProperty(latestPage, 'NO') : 0;
@@ -151,14 +157,16 @@ export class NewsletterService extends NotionService {
     const pageTitleItems = publishingPosts.map((post) => {
       // 默认使用第一个页面的 emoji
       if (!emojiFromFirstPost && post.icon.type === 'emoji') emojiFromFirstPost = post.icon.emoji;
+      console.log(post);
+
       return this.getPageProperty(post, 'Name')
-        .title.map((title) => title.plain_text)
+        .map((title) => title.plain_text)
         .join('');
     });
     const pageTitleContent = pageTitleItems.join('、').replaceAll('《', '').replaceAll('》', '');
 
     return await this.notionClient.pages.create({
-      parent: { database_id: this.databaseId },
+      parent: { database_id: this.newsletterDatabaseId },
       icon: { type: 'emoji', emoji: emojiFromFirstPost },
       properties: {
         Name: {
@@ -175,8 +183,9 @@ export class NewsletterService extends NotionService {
         CreatedAt: {
           date: {
             start: Dayjs().toISOString(),
-            // time_zone: Dayjs().tz.guess()
-            time_zone: null,
+            time_zone: 'Asia/Shanghai',
+            // time_zone: Dayjs.tz('')
+            // time_zone: null,
           },
         },
       },

@@ -22,11 +22,13 @@ async function bootstrap() {
   /**
    * Swagger
    */
-  const swaggerDocument = SwaggerModule.createDocument(
-    app,
-    new DocumentBuilder().setTitle(swaggerConfig.title).setVersion(swaggerConfig.version).build(),
-  );
-  SwaggerModule.setup(configService.get('swagger.path'), app, swaggerDocument);
+  if (process.env.APP_ENV === 'dev') {
+    const swaggerDocument = SwaggerModule.createDocument(
+      app,
+      new DocumentBuilder().setTitle(swaggerConfig.title).setVersion(swaggerConfig.version).build(),
+    );
+    SwaggerModule.setup(configService.get('swagger.path'), app, swaggerDocument);
+  }
 
   /**
    * Startup

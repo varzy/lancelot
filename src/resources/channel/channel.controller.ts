@@ -14,6 +14,6 @@ export class ChannelController {
       return this.channelService.publishById(publishPageDto.id);
     }
 
-    return this.channelService.publishByDay(publishPageDto.day);
+    return this.channelService.publishByDay(publishPageDto.day || new Date());
   }
 }
