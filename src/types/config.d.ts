@@ -18,3 +18,7 @@ interface TelegramConfig {
   token: string;
   chatId: string;
 }
+
+interface ImageHostingConfig {
+  smmsToken: string;
+}

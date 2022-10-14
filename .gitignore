@@ -40,3 +40,4 @@ package-lock.json
 .env.*.local
 .env.prod
 publishingContent.md
+.cache

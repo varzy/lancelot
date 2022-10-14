@@ -187,35 +187,15 @@ export class NewsletterService extends NotionService {
 
   private async insertPreface(newsletterPageCtx: PageObjectResponse) {
     await this.insertBlocks(newsletterPageCtx.id, [
-      // 第一段
-      this.buildBlock('paragraph', {
-        rich_text: [this.buildBlock('text', { content: '见信好👋！' })],
-      }),
-      // 第二段
       this.buildBlock('paragraph', {
         rich_text: [
-          this.buildBlock('text', { content: '「不正集」是一档由 ' }),
+          this.buildBlock('text', { content: '见信好👋！「不正集」是一档由 ' }),
           this.buildBlock('text', { content: 'ZY', link: { url: 'https://varzy.me' } }),
           this.buildBlock('text', {
             content: ' 维护的个人 Newsletter，聚焦且不止步于有趣的互联网内容，不定期更新。',
           }),
-          // this.buildBlock('text', {
-          //   content: '贼歪说',
-          //   link: { url: 'https://t.me/aboutzy' },
-          // }),
-          // this.buildBlock('text', {
-          //   content: ' 基本同步。除此之外我还会不定期更新一些 Bonus 内容。',
-          // }),
         ],
       }),
-      // 第三段
-      // this.buildBlock('paragraph', {
-      //   rich_text: [
-      //     this.buildBlock('text', {
-      //       content: `本期是「常规更新」，收录了贼歪说从 ${startTime} 至 ${endTime} 的更新内容。`,
-      //     }),
-      //   ],
-      // }),
     ]);
   }
 
@@ -292,9 +272,8 @@ export class NewsletterService extends NotionService {
   private async insertBlocks(newsletterPageId: string, children) {
     try {
       await this.notionClient.blocks.children.append({ block_id: newsletterPageId, children });
-      // logger.info(`Insert Blocks: Success: ${label}`);
     } catch (e) {
-      // logger.error(`Insert Blocks: Error: ${label}: ${e}`);
+      Logger.error(`Insert Blocks: Error: ${e}`);
     }
   }
 
