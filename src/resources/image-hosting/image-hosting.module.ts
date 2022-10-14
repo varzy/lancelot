@@ -3,7 +3,6 @@ import { ImageHostingService } from './image-hosting.service';
 import { ImageHostingController } from './image-hosting.controller';
 import { HttpModule, HttpModuleOptions } from '@nestjs/axios';
 import { ConfigModule, ConfigService } from '@nestjs/config';
-import * as Url from 'url-parse';
 
 @Module({
   imports: [
@@ -16,7 +15,7 @@ import * as Url from 'url-parse';
           headers: { Authorization: configService.get('image-hosting.smmsToken') },
         };
         if (process.env.APP_PROXY_ADDRESS) {
-          const { protocol, hostname, port } = new Url(process.env.APP_PROXY_ADDRESS);
+          const { protocol, hostname, port } = new URL(process.env.APP_PROXY_ADDRESS);
           options.proxy = { protocol, host: hostname, port: +port };
         }
         return options;
