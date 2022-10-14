@@ -2,6 +2,7 @@ import { Controller, Delete, Get, Param, Post, Query, UploadedFile, UseIntercept
 import { ImageHostingService } from './image-hosting.service';
 import { ApiTags } from '@nestjs/swagger';
 import { FileInterceptor } from '@nestjs/platform-express';
+import { Readable } from 'stream';
 
 @ApiTags('ImageHosting')
 @Controller('image-hosting')
@@ -11,9 +12,7 @@ export class ImageHostingController {
   @Post('upload')
   @UseInterceptors(FileInterceptor('image'))
   upload(@UploadedFile() image: Express.Multer.File) {
-    image.fieldname = +new Date() + '';
-    console.log(image);
-    return this.imageHostingService.upload(image);
+    return this.imageHostingService.upload(Readable.from(image.buffer), image.originalname);
   }
 
   @Get('profile')

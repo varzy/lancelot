@@ -26,5 +26,6 @@ import * as Url from 'url-parse';
   ],
   controllers: [ImageHostingController],
   providers: [ImageHostingService],
+  exports: [ImageHostingService],
 })
 export class ImageHostingModule {}

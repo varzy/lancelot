@@ -6,14 +6,17 @@ import NotionConfig from '../../config/notion.config';
 import { Dayjs } from '../../utils/dayjs';
 import { BlockObjectResponse, PageObjectResponse } from '@notionhq/client/build/src/api-endpoints';
 import { PublishNewsletterDto } from './dto/publish-newsletter.dto';
-import * as fs from 'fs';
+import { ImageHostingService } from '../image-hosting/image-hosting.service';
 
 @Injectable()
 export class NewsletterService extends NotionService {
   private readonly channelDatabaseId: string;
   private readonly newsletterDatabaseId: string;
 
-  constructor(protected readonly configService: ConfigService) {
+  constructor(
+    protected readonly configService: ConfigService,
+    private readonly imageHostingService: ImageHostingService,
+  ) {
     super(configService);
     const notionConfig = this.configService.get<NotionConfig>('notion');
     this.channelDatabaseId = notionConfig.channelDatabaseId;
@@ -166,14 +169,6 @@ export class NewsletterService extends NotionService {
         RelatedToChannelPosts: {
           relation: publishingPosts.map((post) => ({ id: post.id })),
         },
-        // CreatedAt: {
-        //   date: {
-        //     start: Dayjs().format('YYYY-MM-DD hh:mm:ss'),
-        //     time_zone: 'Asia/Shanghai',
-        //     // time_zone: Dayjs.tz('')
-        //     // time_zone: null,
-        //   },
-        // },
       },
     });
   }
@@ -291,23 +286,11 @@ export class NewsletterService extends NotionService {
     const firstCover = this.getPageProperty(page, 'Cover')[0];
     if (!firstCover) return null;
 
+    const hostingImage = await this.imageHostingService.uploadExternal(firstCover.file.url, `newsletter_${page.id}`);
     return this.buildBlock('image', {
-      type: 'file',
-      file: { url: firstCover },
+      type: 'external',
+      external: { url: hostingImage.url },
     });
-
-    // const firstCover = this.getPageProperty(page, 'Cover')[0];
-    //
-    // if (!firstCover) return null;
-    //
-    // const imageHosting = new ImageHosting();
-    // await imageHosting.init();
-    // const hostingUrl = await imageHosting.uploadExternal(firstCover.file.url);
-    //
-    // return this.buildBlock('image', {
-    //   type: 'external',
-    //   external: { url: hostingUrl },
-    // });
   }
 
   buildBlockTitle(page) {

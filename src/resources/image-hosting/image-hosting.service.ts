@@ -2,15 +2,16 @@ import { Injectable, Logger } from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
 import { lastValueFrom, map } from 'rxjs';
 import * as FormData from 'form-data';
-import { Readable } from 'stream';
+import { Stream } from 'stream';
+import { getRandomStr } from '../../utils/helpers';
 
 @Injectable()
 export class ImageHostingService {
   constructor(private readonly httpService: HttpService) {}
 
-  async upload(image: Express.Multer.File, filename?: string) {
+  async upload(image: Stream, filename?) {
     const formData = new FormData();
-    formData.append('smfile', Readable.from(image.buffer), { filename: filename || image.originalname });
+    formData.append('smfile', image, { filename: filename || `${+new Date()}_${getRandomStr()}` });
 
     const res: any = await lastValueFrom(
       this.httpService
@@ -45,6 +46,14 @@ export class ImageHostingService {
     }
 
     return formattedRes;
+  }
+
+  async uploadExternal(externalUrl: string, filename: string) {
+    Logger.log(`ImageHosting: uploadExternal: Ready to Upload: ${externalUrl}`);
+    const externalImageRes = await lastValueFrom(
+      this.httpService.get(externalUrl, { responseType: 'stream', headers: null }).pipe(map((res) => res.data)),
+    );
+    return await this.upload(externalImageRes, filename);
   }
 
   getProfile() {
