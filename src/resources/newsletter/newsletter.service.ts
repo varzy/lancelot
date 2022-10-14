@@ -58,7 +58,7 @@ export class NewsletterService extends NotionService {
     await this.insertCopyright(newsletterPageCtx as PageObjectResponse);
     Logger.log(`Newsletter: generate: insertCopyright: success`);
 
-    return { code: 0, message: 'GENERATED' };
+    return { startTime, endTime, newsletterPageCtx };
   }
 
   async publish(publishNewsletterDto: PublishNewsletterDto) {
@@ -80,7 +80,7 @@ export class NewsletterService extends NotionService {
       targetNewsletterId = sortedNewsletters[0].id;
     }
 
-    Logger.log(`Ready to Publish NewsletterId: ${targetNewsletterId}`);
+    Logger.log(`Newsletter: publish: PublishingNewsletter: ${targetNewsletterId}`);
 
     // 获取页面信息
     const pageCtx = await this.getPageCtx(targetNewsletterId);
@@ -88,24 +88,20 @@ export class NewsletterService extends NotionService {
     // 更新此 newsletter 关联的 channel post 状态
     for (const post of this.getPageProperty(pageCtx, 'RelatedToChannelPosts')) {
       await this.notionClient.pages.update({
-        page_id: targetNewsletterId,
-        properties: {
-          Status: { select: { name: 'Published' } },
-        },
+        page_id: post.id,
+        properties: { Status: { select: { name: 'Published' } } },
       });
-      Logger.log(`RelatedToChannelPost Status Updated: ${post.id}`);
+      Logger.log(`Newsletter: publish: RelatedToChannelPost Status Updated: ${post.id}`);
     }
-    Logger.log(`RelatedToChannelPosts Statuses All Updated`);
+    Logger.log(`Newsletter: publish: RelatedToChannelPosts Statuses All Updated`);
 
     // 更新此 newsletter 的自身发布状态
     await this.notionClient.pages.update({
       page_id: targetNewsletterId,
-      properties: {
-        IsPublished: { checkbox: true },
-      },
+      properties: { IsPublished: { checkbox: true } },
     });
 
-    Logger.log(`Newsletter IsPublished checkbox has been Checked`);
+    Logger.log(`Newsletter: publish: Newsletter Checkbox Updated`);
 
     return { targetNewsletterId };
   }
