@@ -43,7 +43,7 @@ export class NewsletterService extends NotionService {
     await this.insertPreface(newsletterPageCtx as PageObjectResponse);
     Logger.log(`Newsletter: generate: insertPreface: success`);
 
-    // 插入本次分享
+    // 插入本期分享
     await this.insertSharedContents(newsletterPageCtx as PageObjectResponse, publishingPosts as PageObjectResponse[]);
     Logger.log(`Newsletter: generate: insertSharedContents: success`);
 
@@ -206,7 +206,7 @@ export class NewsletterService extends NotionService {
 
   private async insertSharedContents(newsletterPageCtx: PageObjectResponse, publishingPosts: PageObjectResponse[]) {
     // ======== 插入大标题 ========
-    // await this.insertBlocks(newsletterPageCtx.id, this.buildBlocksSectionHeader('本周分享'));
+    await this.insertBlocks(newsletterPageCtx.id, this.buildBlocksSectionHeader('本期分享'));
 
     // ======== 插入 Post 页面 ========
     for (const post of publishingPosts) {
@@ -232,7 +232,7 @@ export class NewsletterService extends NotionService {
 
   async insertFriendlyLinks(newsletterPageCtx: PageObjectResponse) {
     await this.insertBlocks(newsletterPageCtx.id, [
-      // ...this.buildBlocksSectionHeader('友情链接'),
+      ...this.buildBlocksSectionHeader('友情链接'),
       this.buildBlock('paragraph', {
         rich_text: [this.buildBlock('text', { content: '广告位免费出租中... 欢迎互换友链🔗。' })],
       }),
@@ -259,10 +259,15 @@ export class NewsletterService extends NotionService {
             content: 'varzy.zhubai.love',
             link: { url: 'https://varzy.zhubai.love' },
           }),
-          this.buildBlock('text', { content: '｜个人主页：' }),
+          this.buildBlock('text', { content: ' | 个人主页：' }),
           this.buildBlock('text', {
             content: 'varzy.me',
             link: { url: 'https://varzy.me' },
+          }),
+          this.buildBlock('text', { content: ' | Telegram：' }),
+          this.buildBlock('text', {
+            content: '贼歪说',
+            link: { url: 'https://t.me/aboutzy' },
           }),
         ],
       }),
