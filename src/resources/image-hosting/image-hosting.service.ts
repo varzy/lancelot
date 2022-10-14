@@ -35,14 +35,14 @@ export class ImageHostingService {
     };
 
     if (res.success) {
-      Logger.log(`ImageHosting: upload: success: ${res.url}`);
       formattedRes.data = res.data;
       formattedRes.url = res.data.url;
+      Logger.log(`ImageHosting: upload: success: ${res.url}`);
     }
 
     if (res.code === 'image_repeated') {
-      Logger.warn(`ImageHosting: upload: image_repeated: ${res.message}`);
       formattedRes.url = res.images;
+      Logger.warn(`ImageHosting: upload: image_repeated: ${res.message}`);
     }
 
     return formattedRes;

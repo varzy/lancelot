@@ -37,16 +37,26 @@ export class NewsletterService extends NotionService {
 
     // 插入目录
     await this.insertTableOfContents(newsletterPageCtx as PageObjectResponse);
+    Logger.log(`Newsletter: generate: insertTableOfContents: success`);
+
     // 插入序言
     await this.insertPreface(newsletterPageCtx as PageObjectResponse);
-    // 插入本周分享
+    Logger.log(`Newsletter: generate: insertPreface: success`);
+
+    // 插入本次分享
     await this.insertSharedContents(newsletterPageCtx as PageObjectResponse, publishingPosts as PageObjectResponse[]);
+    Logger.log(`Newsletter: generate: insertSharedContents: success`);
+
     // 插入 One More Thing
     // await this.insertOneMoreThing(newsletterPageCtx as PageObjectResponse);
+
     // 插入友情链接
     await this.insertFriendlyLinks(newsletterPageCtx as PageObjectResponse);
+    Logger.log(`Newsletter: generate: insertFriendlyLinks: success`);
+
     // 插入 copyright
     await this.insertCopyright(newsletterPageCtx as PageObjectResponse);
+    Logger.log(`Newsletter: generate: insertCopyright: success`);
 
     return { code: 0, message: 'GENERATED' };
   }
@@ -196,7 +206,7 @@ export class NewsletterService extends NotionService {
 
   private async insertSharedContents(newsletterPageCtx: PageObjectResponse, publishingPosts: PageObjectResponse[]) {
     // ======== 插入大标题 ========
-    await this.insertBlocks(newsletterPageCtx.id, this.buildBlocksSectionHeader('本周分享'));
+    // await this.insertBlocks(newsletterPageCtx.id, this.buildBlocksSectionHeader('本周分享'));
 
     // ======== 插入 Post 页面 ========
     for (const post of publishingPosts) {
@@ -222,7 +232,7 @@ export class NewsletterService extends NotionService {
 
   async insertFriendlyLinks(newsletterPageCtx: PageObjectResponse) {
     await this.insertBlocks(newsletterPageCtx.id, [
-      ...this.buildBlocksSectionHeader('友情链接'),
+      // ...this.buildBlocksSectionHeader('友情链接'),
       this.buildBlock('paragraph', {
         rich_text: [this.buildBlock('text', { content: '广告位免费出租中... 欢迎互换友链🔗。' })],
       }),
