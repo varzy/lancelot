@@ -22,3 +22,9 @@ interface TelegramConfig {
 interface ImageHostingConfig {
   smmsToken: string;
 }
+
+interface AuthConfig {
+  superUsername: string;
+  superPassword: string;
+  jwtSecret: string;
+}
