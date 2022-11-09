@@ -115,21 +115,20 @@ export class NewsletterService extends NotionService {
       page_size: 100,
       filter: { property: 'Status', select: { equals: 'UnNewsletter' } },
     });
-
-    return unNewsletterPosts.results
-      .filter((post) => {
-        const realPubTime = Dayjs(this.getPageProperty(post, 'RealPubTime').start);
-        return realPubTime.isSameOrBefore(endTime) && realPubTime.isSameOrAfter(startTime);
-      })
-      .sort(
-        (a, b) =>
-          +new Date(this.getPageProperty(a, 'RealPubTime').start) -
-          +new Date(this.getPageProperty(b, 'RealPubTime').start),
-      )
-      .sort(
-        (a, b) =>
-          this.getPageProperty(a, 'NLGenPriority') || Infinity - this.getPageProperty(b, 'NLGenPriority') || Infinity,
-      );
+    const inRangePosts = unNewsletterPosts.results.filter((post) => {
+      const realPubTime = Dayjs(this.getPageProperty(post, 'RealPubTime').start);
+      return realPubTime.isSameOrBefore(endTime) && realPubTime.isSameOrAfter(startTime);
+    });
+    const sortedByPubTimePosts = inRangePosts.sort(
+      (a, b) =>
+        +new Date(this.getPageProperty(a, 'RealPubTime').start) -
+        +new Date(this.getPageProperty(b, 'RealPubTime').start),
+    );
+    return sortedByPubTimePosts.sort((a, b) => {
+      const aNLGenPriority = this.getPageProperty(a, 'NLGenPriority') || Infinity;
+      const bNLGenPriority = this.getPageProperty(b, 'NLGenPriority') || Infinity;
+      return aNLGenPriority - bNLGenPriority;
+    });
   }
 
   /**
