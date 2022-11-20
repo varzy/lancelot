@@ -1,5 +1,13 @@
+enum AppEnv {
+  dev = 'dev',
+  prod = 'prod',
+}
+
 interface AppConfig {
+  env: AppEnv;
   port: number;
+  proxyAddress: string;
+  corsOrigin: string;
 }
 
 interface SwaggerConfig {
