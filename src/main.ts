@@ -18,7 +18,7 @@ async function bootstrap() {
     .setGlobalPrefix('api')
     .useGlobalPipes(new ValidationPipe({ transform: true }))
     .useGlobalFilters(new HttpExceptionFilter())
-    .enableCors({ origin: process.env.APP_ENV === 'dev' ? '*' : appConfig.corsOrigin });
+    .enableCors({ origin: appConfig.corsOrigin });
 
   /**
    * Swagger
