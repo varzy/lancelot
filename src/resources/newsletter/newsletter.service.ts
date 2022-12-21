@@ -2,7 +2,6 @@ import { HttpException, HttpStatus, Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { NotionService } from '../notion/notion.service';
 import { GenerateNewsletterDto } from './dto/generate-newsletter.dto';
-import NotionConfig from '../../config/notion.config';
 import { Dayjs } from '../../utils/dayjs';
 import { BlockObjectResponse, PageObjectResponse } from '@notionhq/client/build/src/api-endpoints';
 import { PublishNewsletterDto } from './dto/publish-newsletter.dto';
