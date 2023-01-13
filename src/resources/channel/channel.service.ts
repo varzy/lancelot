@@ -41,8 +41,9 @@ export class ChannelService extends NotionService implements OnModuleInit {
       filter: {
         and: [
           {
+            // @FIX: 修复时区问题。目前根据部署地时区不同导致匹配出现异常
             property: 'PlanningPublish',
-            date: { equals: Dayjs(day).format('YYYY-MM-DD') },
+            date: { equals: getIsoTimeCST(day) },
           },
           {
             property: 'Status',
