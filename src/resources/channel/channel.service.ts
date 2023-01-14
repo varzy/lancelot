@@ -2,7 +2,6 @@ import { HttpException, HttpStatus, Injectable, OnModuleInit } from '@nestjs/com
 import { ConfigService } from '@nestjs/config';
 import { Dayjs } from '../../utils/dayjs';
 import { NotionService } from '../notion/notion.service';
-import NotionConfig from '../../config/notion.config';
 import {
   BlockObjectResponse,
   BulletedListItemBlockObjectResponse,
@@ -35,13 +34,16 @@ export class ChannelService extends NotionService implements OnModuleInit {
     return this.publishPage(pageCtx as PageObjectResponse);
   }
 
+  /**
+   * @FIX: 修复时区问题。目前根据部署地时区不同导致匹配出现异常
+   * @param day 支持接收带有时区的时间，如果不携带时区信息默认为 UTC
+   */
   async publishByDay(day: string | Date) {
     const pages = await this.notionClient.databases.query({
       database_id: this.databaseId,
       filter: {
         and: [
           {
-            // @FIX: 修复时区问题。目前根据部署地时区不同导致匹配出现异常
             property: 'PlanningPublish',
             date: { equals: getIsoTimeCST(day) },
           },
