@@ -13,7 +13,7 @@ import {
 } from '@notionhq/client/build/src/api-endpoints';
 import { TelegramService } from '../telegram/telegram.service';
 import { InputMediaPhoto } from 'telegraf/types';
-import { getIsoTimeCST } from '../../utils/helpers';
+// import { getIsoTimeCST } from '../../utils/helpers';
 
 @Injectable()
 export class ChannelService extends NotionService implements OnModuleInit {
@@ -44,8 +44,9 @@ export class ChannelService extends NotionService implements OnModuleInit {
       filter: {
         and: [
           {
+            // PlanningPublish 是 UTC 时间
             property: 'PlanningPublish',
-            date: { equals: getIsoTimeCST(day) },
+            date: { equals: Dayjs(day).tz('Asia/Shanghai').format('YYYY-MM-DD') },
           },
           {
             property: 'Status',
@@ -86,7 +87,7 @@ export class ChannelService extends NotionService implements OnModuleInit {
 
     await this.updateProperty(pageCtx.id, {
       Status: { select: { name: 'UnNewsletter' } },
-      RealPubTime: { date: { start: getIsoTimeCST() } },
+      RealPubTime: { date: { start: Dayjs().tz('Asia/Shanghai') } },
     });
 
     return { pageCtx, publishingCovers, publishingContent };
