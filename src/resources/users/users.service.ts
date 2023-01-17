@@ -1,5 +1,4 @@
 import { Injectable } from '@nestjs/common';
-import AuthConfig from '../../config/auth.config';
 import { ConfigService } from '@nestjs/config';
 import * as Md5 from 'md5';
 
