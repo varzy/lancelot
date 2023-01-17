@@ -87,7 +87,7 @@ export class ChannelService extends NotionService implements OnModuleInit {
 
     await this.updateProperty(pageCtx.id, {
       Status: { select: { name: 'UnNewsletter' } },
-      RealPubTime: { date: { start: Dayjs().tz('Asia/Shanghai') } },
+      RealPubTime: { date: { start: Dayjs().tz('Asia/Shanghai').format('YYYY-MM-DDTHH:mm:ssZ') } },
     });
 
     return { pageCtx, publishingCovers, publishingContent };
