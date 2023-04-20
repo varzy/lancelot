@@ -35,7 +35,6 @@ export class ChannelService extends NotionService implements OnModuleInit {
   }
 
   /**
-   * @FIX: 修复时区问题。目前根据部署地时区不同导致匹配出现异常
    * @param day 支持接收带有时区的时间，如果不携带时区信息默认为 UTC
    */
   async publishByDay(day: string | Date) {
