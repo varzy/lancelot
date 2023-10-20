@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { ConfigModule } from '@nestjs/config';
+import { DevtoolsModule } from '@nestjs/devtools-integration';
 import { ChannelModule } from './resources/channel/channel.module';
 import { NewsletterModule } from './resources/newsletter/newsletter.module';
 import { PosterModule } from './resources/poster/poster.module';
@@ -23,6 +24,9 @@ import authConfig from './config/auth.config';
     ConfigModule.forRoot({
       isGlobal: true,
       load: [appConfig, swaggerConfig, notionConfig, telegramConfig, imageHostingConfig, authConfig],
+    }),
+    DevtoolsModule.register({
+      http: process.env.NODE_ENV !== 'production',
     }),
     ChannelModule,
     NewsletterModule,
